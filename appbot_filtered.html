@@ -1,0 +1,166 @@
+
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Запись</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    :root {
+      --color-main: #2cab37;
+    }
+
+    body {
+      margin: 0;
+      font-family: system-ui, sans-serif;
+      background: linear-gradient(to bottom right, #f5f7fa, #c3d7ff);
+      padding: 20px;
+    }
+
+    h2 {
+      margin: 10px 0 5px;
+    }
+
+    .card-group {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 15px;
+    }
+
+    .card {
+      flex: 1;
+      text-align: center;
+      padding: 10px;
+      border: 2px solid #ccc;
+      border-radius: 10px;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .card.selected {
+      border-color: var(--color-main);
+      background: rgba(44, 171, 55, 0.1);
+    }
+
+    #calendar {
+      margin: 10px 0;
+      padding: 10px;
+      font-size: 16px;
+      width: 100%;
+    }
+
+    .time-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      margin: 10px 0 20px;
+    }
+
+    .time-button {
+      padding: 10px;
+      text-align: center;
+      border: 2px solid #ccc;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+
+    .time-button.selected {
+      border-color: var(--color-main);
+      background: rgba(44, 171, 55, 0.1);
+    }
+
+    button#submit {
+      width: 100%;
+      padding: 15px;
+      font-size: 16px;
+      border: none;
+      border-radius: 10px;
+      background: var(--color-main);
+      color: white;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <h2>Мастер</h2>
+  <div class="card-group" id="masters">
+    <div class="card" data-master="Сабина">Сабина</div>
+    <div class="card" data-master="Сабина2">Сабина2</div>
+    <div class="card" data-master="Сабина3">Сабина3</div>
+  </div>
+
+  <h2>Дата</h2>
+  <input type="date" id="calendar" min="" />
+
+  <h2>Время</h2>
+  <div class="time-grid" id="times"></div>
+
+  <button id="submit">📩 Записаться</button>
+
+  <script>
+    const tg = window.Telegram.WebApp;
+    tg.expand();
+
+    const calendar = document.getElementById("calendar");
+    const timesContainer = document.getElementById("times");
+    const today = new Date().toISOString().split("T")[0];
+    calendar.setAttribute("min", today);
+
+    let selectedMaster = null;
+    let selectedTime = null;
+
+    document.querySelectorAll("#masters .card").forEach(card => {
+      card.addEventListener("click", () => {
+        document.querySelectorAll("#masters .card").forEach(c => c.classList.remove("selected"));
+        card.classList.add("selected");
+        selectedMaster = card.dataset.master;
+      });
+    });
+
+    function renderTimes() {
+      const selectedDate = calendar.value;
+      timesContainer.innerHTML = "";
+      if (!selectedDate) return;
+
+      const now = new Date();
+      const isToday = selectedDate === today;
+
+      for (let h = 9; h <= 22; h++) {
+        const hourStr = (h < 10 ? "0" : "") + h + ":00";
+        if (isToday && h <= now.getHours()) continue;
+
+        const div = document.createElement("div");
+        div.className = "time-button";
+        div.textContent = hourStr;
+        div.addEventListener("click", () => {
+          document.querySelectorAll(".time-button").forEach(btn => btn.classList.remove("selected"));
+          div.classList.add("selected");
+          selectedTime = hourStr;
+        });
+        timesContainer.appendChild(div);
+      }
+    }
+
+    calendar.addEventListener("change", renderTimes);
+    renderTimes();
+
+    document.getElementById("submit").addEventListener("click", () => {
+      const date = calendar.value;
+
+      if (!selectedMaster || !date || !selectedTime) {
+        alert("Выберите мастера, дату и время");
+        return;
+      }
+
+      tg.sendData(JSON.stringify({
+        master: selectedMaster,
+        date: date,
+        time: selectedTime
+      }));
+
+      tg.close();
+    });
+  </script>
+</body>
+</html>
